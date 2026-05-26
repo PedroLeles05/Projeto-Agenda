@@ -1,0 +1,2302 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agenda — Plataforma de Agendamentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["DM Sans", "sans-serif"],
+              mono: ["DM Mono", "monospace"],
+            },
+            colors: {
+              stone: {
+                50: "#fafaf9",
+                100: "#f5f5f4",
+                200: "#e7e5e4",
+                300: "#d6d3d1",
+                400: "#a8a29e",
+                500: "#78716c",
+                600: "#57534e",
+                700: "#44403c",
+                800: "#292524",
+                900: "#1c1917",
+              },
+              teal: {
+                50: "#f0fdfa",
+                100: "#ccfbf1",
+                200: "#99f6e4",
+                300: "#5eead4",
+                400: "#2dd4bf",
+                500: "#14b8a6",
+                600: "#0d9488",
+                700: "#0f766e",
+                800: "#115e59",
+                900: "#134e4a",
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+        background-color: #fafaf9;
+        color: #292524;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── Scrollbar ── */
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #d6d3d1;
+        border-radius: 99px;
+      }
+
+      /* ── Header blur ── */
+      .header-blur {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        background: rgba(250, 250, 249, 0.88);
+      }
+
+      /* ── Card hover lift ── */
+      .service-card {
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      .service-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+      }
+
+      /* ── Accent line on active nav ── */
+      .nav-active {
+        position: relative;
+      }
+      .nav-active::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #0d9488;
+        border-radius: 99px;
+      }
+
+      /* ── Modal overlay ── */
+      #modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(28, 25, 23, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 50;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      #modal-overlay.open {
+        display: flex;
+      }
+
+      @media (min-width: 640px) {
+        #modal-overlay {
+          align-items: center;
+        }
+      }
+
+      #modal-box {
+        width: 100%;
+        max-width: 520px;
+        background: #fafaf9;
+        border-radius: 20px 20px 0 0;
+        max-height: 92dvh;
+        overflow-y: auto;
+      }
+      @media (min-width: 640px) {
+        #modal-box {
+          border-radius: 16px;
+          max-height: 88dvh;
+        }
+      }
+
+      /* ── Login overlay ── */
+      #login-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(28, 25, 23, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 50;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      #login-modal-overlay.open {
+        display: flex;
+      }
+
+      @media (min-width: 640px) {
+        #login-modal-overlay {
+          align-items: center;
+        }
+      }
+
+      #login-modal-box {
+        width: 100%;
+        max-width: 520px;
+        background: #fafaf9;
+        border-radius: 20px 20px 0 0;
+        max-height: 92dvh;
+        overflow-y: auto;
+      }
+      @media (min-width: 640px) {
+        #login-modal-box {
+          border-radius: 16px;
+          max-height: 88dvh;
+        }
+      }
+
+      /* ── Register overlay ── */
+      #register-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(28, 25, 23, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 50;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      #register-modal-overlay.open {
+        display: flex;
+      }
+
+      @media (min-width: 640px) {
+        #register-modal-overlay {
+          align-items: center;
+        }
+      }
+
+      #register-modal-box {
+        width: 100%;
+        max-width: 520px;
+        background: #fafaf9;
+        border-radius: 20px 20px 0 0;
+        max-height: 92dvh;
+        overflow-y: auto;
+      }
+      @media (min-width: 640px) {
+        #register-modal-box {
+          border-radius: 16px;
+          max-height: 88dvh;
+        }
+      }
+
+      /* ── Status badge ── */
+      .badge-scheduled {
+        background: #ccfbf1;
+        color: #0f766e;
+      }
+      .badge-completed {
+        background: #f5f5f4;
+        color: #57534e;
+      }
+      .badge-cancelled {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      /* ── Input focus ring ── */
+      input,
+      select,
+      textarea {
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: #0d9488 !important;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+      }
+
+      /* ── Pill tabs ── */
+      .tab-pill {
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .tab-pill.active {
+        background: #0d9488;
+        color: #fff;
+      }
+
+      /* ── Diagonal section separator ── */
+      .section-wave {
+        position: relative;
+      }
+      .section-wave::before {
+        content: "";
+        position: absolute;
+        top: -1px;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: #fafaf9;
+        clip-path: ellipse(60% 100% at 50% 0%);
+      }
+
+      /* ── Skeleton pulse (placeholder) ── */
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      .skel {
+        animation: pulse 1.6s ease-in-out infinite;
+        background: #e7e5e4;
+        border-radius: 6px;
+      }
+
+      /* ── Table row hover ── */
+      tr.hoverable:hover td {
+        background: #f5f5f4;
+      }
+      tr.hoverable {
+        transition: background 0.1s;
+      }
+
+      /* ── Mobile nav drawer ── */
+      #mobile-menu {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+      }
+      #mobile-menu.open {
+        display: block;
+      }
+      #mobile-menu-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 260px;
+        height: 100%;
+        background: #fafaf9;
+        border-left: 1px solid #e7e5e4;
+        padding: 2rem 1.5rem;
+      }
+
+      /* ── Number accent ── */
+      .num-accent {
+        font-family: "DM Mono", monospace;
+        letter-spacing: -0.03em;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <!-- ═══════════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════════ -->
+    <header class="header-blur sticky top-0 z-30 border-b border-stone-200">
+      <div
+        class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4"
+      >
+        <!-- Logo -->
+        <a href="#" class="flex items-center gap-2 flex-shrink-0">
+          <span
+            class="w-7 h-7 rounded-lg bg-teal-600 flex items-center justify-center"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect
+                x="1"
+                y="1"
+                width="5"
+                height="5"
+                rx="1.2"
+                fill="white"
+                opacity="0.9"
+              />
+              <rect
+                x="8"
+                y="1"
+                width="5"
+                height="5"
+                rx="1.2"
+                fill="white"
+                opacity="0.6"
+              />
+              <rect
+                x="1"
+                y="8"
+                width="5"
+                height="5"
+                rx="1.2"
+                fill="white"
+                opacity="0.6"
+              />
+              <rect
+                x="8"
+                y="8"
+                width="5"
+                height="5"
+                rx="1.2"
+                fill="white"
+                opacity="0.9"
+              />
+            </svg>
+          </span>
+          <span class="font-medium text-stone-900 tracking-tight"
+            >agenda<span class="text-teal-600">.</span></span
+          >
+        </a>
+
+        <!-- Desktop nav -->
+        <nav
+          class="hidden sm:flex items-center gap-6 text-sm text-stone-500 font-medium"
+        >
+          <a href="#services" class="hover:text-stone-900 transition-colors"
+            >Serviços</a
+          >
+          <a
+            id="user-button"
+            href="#panel"
+            class="hidden hover:text-stone-900 transition-colors"
+            >Painel</a
+          >
+        </nav>
+
+        <!-- Auth buttons -->
+        <div id="auth-buttons" class="sm:flex items-center gap-2">
+          <button
+            id="login-btn"
+            onclick="
+              document
+                .getElementById('login-modal-overlay')
+                .classList.add('open')
+            "
+            class="px-4 py-1.5 text-sm font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-all"
+          >
+            Entrar
+          </button>
+          <button
+            id="register-btn"
+            onclick="
+              document
+                .getElementById('register-modal-overlay')
+                .classList.add('open')
+            "
+            class="px-4 py-1.5 text-sm font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all"
+          >
+            Registrar
+          </button>
+        </div>
+        <button
+          id="logout-btn"
+          class="hidden px-4 py-1.5 text-sm font-medium text-stone-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all"
+        >
+          Sair
+        </button>
+
+        <!-- Mobile hamburger -->
+        <button
+          id="hamburger-btn"
+          class="sm:hidden flex flex-col gap-1.5 p-1"
+          aria-label="Menu"
+        >
+          <span class="w-5 h-0.5 bg-stone-600 rounded"></span>
+          <span class="w-5 h-0.5 bg-stone-600 rounded"></span>
+          <span class="w-3.5 h-0.5 bg-stone-600 rounded"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu">
+      <div
+        id="mobile-menu-backdrop"
+        class="absolute inset-0 bg-stone-900/30 backdrop-blur-sm"
+      ></div>
+      <div id="mobile-menu-panel">
+        <div class="flex justify-between items-center mb-8">
+          <span class="font-medium text-stone-900"
+            >agenda<span class="text-teal-600">.</span></span
+          >
+          <button
+            id="close-menu-btn"
+            class="text-stone-400 hover:text-stone-700"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path
+                d="M2 2l14 14M16 2L2 16"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <nav
+          class="flex flex-col gap-5 text-stone-600 font-medium text-sm mb-8"
+        >
+          <a href="#services" class="hover:text-teal-700">Serviços</a>
+          <a href="#panel" class="hover:text-teal-700">Painel</a>
+        </nav>
+        <div class="flex flex-col gap-3">
+          <button
+            class="w-full py-2.5 border border-stone-200 rounded-xl text-sm font-medium text-stone-700 hover:bg-stone-50"
+          >
+            Entrar
+          </button>
+          <button
+            class="w-full py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700"
+          >
+            Registrar
+          </button>
+          <button
+            id="mobile-logout-btn"
+            class="hidden w-full py-2.5 border border-stone-200 rounded-xl text-sm font-medium text-stone-600 hover:text-red-700 hover:bg-red-50 hover:border-red-100 transition-all"
+          >
+            Sair da conta
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+       HERO / INTRO
+  ═══════════════════════════════════════════ -->
+    <section
+      class="max-w-6xl mx-auto px-4 sm:px-6 pt-12 pb-10 sm:pt-16 sm:pb-14"
+    >
+      <!-- ═══════════════════════════════════════════
+       MODAL DO LOGIN (hidden by default)
+      ═══════════════════════════════════════════ -->
+      <div
+        id="login-modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Acessar conta"
+      >
+        <div id="login-modal-box" class="sm:p-8">
+          <div class="flex justify-center mb-5 sm:hidden">
+            <div class="w-10 h-1 bg-stone-200 rounded-full"></div>
+          </div>
+
+          <div class="flex items-start justify-between mb-6">
+            <div>
+              <h2 class="text-base font-medium text-stone-900">
+                Acessar Conta
+              </h2>
+              <p class="text-xs text-stone-400 mt-0.5">
+                Bem-vindo de volta! Insira suas credenciais para continuar.
+              </p>
+            </div>
+            <button
+              id="close-login-btn"
+              class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-all flex-shrink-0"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M2 2l12 12M14 2L2 14"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <form id="login-form" class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-stone-500">
+                E-mail <span class="text-teal-600">*</span>
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                placeholder="seu@email.com"
+                class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-800 placeholder:text-stone-300"
+                required
+              />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <div class="flex justify-between items-center">
+                <label class="text-xs font-medium text-stone-500">
+                  Senha <span class="text-teal-600">*</span>
+                </label>
+                <a
+                  href="#"
+                  class="text-xs font-medium text-teal-600 hover:text-teal-700 transition-all"
+                >
+                  Esqueceu a senha?
+                </a>
+              </div>
+              <input
+                id="login-password"
+                type="password"
+                placeholder="••••••••"
+                class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-800 placeholder:text-stone-300"
+                required
+              />
+            </div>
+
+            <div class="flex items-center gap-2 mt-1">
+              <input
+                type="checkbox"
+                id="remember-me"
+                class="w-4 h-4 rounded border-stone-300 text-teal-600 focus:ring-teal-500 accent-teal-600 cursor-pointer"
+              />
+              <label
+                id="remember-me-label"
+                for="remember-me"
+                class="text-xs text-stone-500 cursor-pointer select-none"
+              >
+                Lembrar de mim neste dispositivo
+              </label>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 mt-4">
+              <button
+                type="button"
+                id="cancel-login-btn"
+                class="order-2 sm:order-1 flex-1 py-3 text-sm font-medium text-stone-500 hover:text-stone-800 border border-stone-200 rounded-xl hover:bg-stone-50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                id="login-submit"
+                type="submit"
+                class="order-1 sm:order-2 flex-1 py-3 text-sm font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all"
+              >
+                Entrar na conta
+              </button>
+            </div>
+
+            <p class="text-center text-xs text-stone-400 mt-2">
+              Não tem uma conta?
+              <a
+                href="#"
+                class="font-medium text-teal-600 hover:text-teal-700 transition-all"
+                >Cadastre-se</a
+              >
+            </p>
+          </form>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════
+       MODAL DO REGISTER (hidden by default)
+      ═══════════════════════════════════════════ -->
+      <div
+        id="register-modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Criar nova conta"
+      >
+        <div id="register-modal-box" class="sm:p-8">
+          <div class="flex justify-center mb-5 sm:hidden">
+            <div class="w-10 h-1 bg-stone-200 rounded-full"></div>
+          </div>
+
+          <div class="flex items-start justify-between mb-6">
+            <div>
+              <h2 class="text-base font-medium text-stone-900">Criar Conta</h2>
+              <p class="text-xs text-stone-400 mt-0.5">
+                Cadastre-se para começar a gerenciar seus serviços.
+              </p>
+            </div>
+            <button
+              id="close-register-btn"
+              class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-all flex-shrink-0"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M2 2l12 12M14 2L2 14"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <form id="register-form" class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-stone-500">
+                Nome completo <span class="text-teal-600">*</span>
+              </label>
+              <input
+                id="register-name"
+                type="text"
+                placeholder="Seu nome"
+                class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-800 placeholder:text-stone-300"
+                required
+              />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-stone-500">
+                E-mail <span class="text-teal-600">*</span>
+              </label>
+              <input
+                id="register-email"
+                type="email"
+                placeholder="seu@email.com"
+                class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-800 placeholder:text-stone-300"
+                required
+              />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-medium text-stone-500">
+                  Senha <span class="text-teal-600">*</span>
+                </label>
+                <input
+                  id="register-password"
+                  type="password"
+                  placeholder="Crie uma senha"
+                  class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-800 placeholder:text-stone-300"
+                  required
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-medium text-stone-500">
+                  Confirmar senha <span class="text-teal-600">*</span>
+                </label>
+                <input
+                  id="register-confirm-password"
+                  type="password"
+                  placeholder="Repita a senha"
+                  class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-800 placeholder:text-stone-300"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="flex items-start gap-2 mt-1">
+              <input
+                id="terms-check"
+                type="checkbox"
+                id="terms-check"
+                class="mt-0.5 w-4 h-4 rounded border-stone-300 text-teal-600 focus:ring-teal-500 accent-teal-600 cursor-pointer"
+                required
+              />
+              <label
+                id="terms-label"
+                for="terms-check"
+                class="text-xs text-stone-500 cursor-pointer select-none leading-relaxed"
+              >
+                Eu aceito os
+                <a href="#" class="text-teal-600 font-medium hover:underline"
+                  >Termos de Uso</a
+                >
+                e a
+                <a href="#" class="text-teal-600 font-medium hover:underline"
+                  >Política de Privacidade</a
+                >.
+              </label>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 mt-4">
+              <button
+                type="button"
+                id="cancel-register-btn"
+                class="order-2 sm:order-1 flex-1 py-3 text-sm font-medium text-stone-500 hover:text-stone-800 border border-stone-200 rounded-xl hover:bg-stone-50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                id="register-submit"
+                type="submit"
+                class="order-1 sm:order-2 flex-1 py-3 text-sm font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all"
+              >
+                Criar minha conta
+              </button>
+            </div>
+
+            <p class="text-center text-xs text-stone-400 mt-2">
+              Já tem uma conta?
+              <a
+                href="#"
+                class="font-medium text-teal-600 hover:text-teal-700 transition-all"
+                >Fazer login</a
+              >
+            </p>
+          </form>
+        </div>
+      </div>
+
+      <div class="max-w-xl">
+        <div
+          class="inline-flex items-center gap-2 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-medium px-3 py-1 rounded-full mb-5"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+          Plataforma de agendamentos
+        </div>
+        <h1
+          class="text-3xl sm:text-4xl font-light text-stone-900 leading-snug mb-3 tracking-tight"
+        >
+          Encontre um serviço<br />
+          <span class="font-medium">e agende com facilidade.</span>
+        </h1>
+        <p class="text-stone-500 text-sm sm:text-base leading-relaxed">
+          Navegue pelos serviços disponíveis e reserve um horário em segundos —
+          sem cadastro necessário.
+        </p>
+      </div>
+
+      <!-- Stats strip -->
+      <div class="mt-10 flex gap-8 flex-wrap">
+        <div>
+          <p class="num-accent text-2xl font-medium text-stone-900">38</p>
+          <p class="text-xs text-stone-400 mt-0.5">serviços ativos</p>
+        </div>
+        <div class="w-px bg-stone-200"></div>
+        <div>
+          <p class="num-accent text-2xl font-medium text-stone-900">12</p>
+          <p class="text-xs text-stone-400 mt-0.5">prestadores</p>
+        </div>
+        <div class="w-px bg-stone-200"></div>
+        <div>
+          <p class="num-accent text-2xl font-medium text-stone-900">247</p>
+          <p class="text-xs text-stone-400 mt-0.5">agendamentos hoje</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+       SEÇÃO PÚBLICA — LISTAGEM DE SERVIÇOS
+  ═══════════════════════════════════════════ -->
+    <section id="services" class="bg-stone-100 border-t border-stone-200 pb-16">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-10">
+        <!-- Section header + search -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
+          <div class="flex-1">
+            <h2 class="text-lg font-medium text-stone-900">
+              Serviços disponíveis
+            </h2>
+            <p class="text-sm text-stone-400 mt-0.5">
+              Escolha um serviço e agende seu horário
+            </p>
+          </div>
+
+          <!-- Search & filter -->
+          <div class="flex gap-2 flex-col sm:flex-row w-full sm:w-auto">
+            <div class="relative flex-1 sm:w-64">
+              <svg
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+              >
+                <circle
+                  cx="6"
+                  cy="6"
+                  r="4.5"
+                  stroke="currentColor"
+                  stroke-width="1.4"
+                />
+                <path
+                  d="M9.5 9.5l3 3"
+                  stroke="currentColor"
+                  stroke-width="1.4"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <input
+                type="search"
+                placeholder="Buscar serviços..."
+                class="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-300"
+              />
+            </div>
+            <select
+              class="px-3 py-2.5 text-sm bg-white border border-stone-200 rounded-xl text-stone-600 appearance-none cursor-pointer"
+            >
+              <option value="">Todos os tipos</option>
+              <option>Saúde &amp; Bem-estar</option>
+              <option>Beleza</option>
+              <option>Consultoria</option>
+              <option>Educação</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Filter pills -->
+        <div class="flex gap-2 flex-wrap mb-6">
+          <button
+            class="tab-pill active text-xs font-medium px-3.5 py-1.5 rounded-full border border-stone-200 bg-white text-stone-500"
+          >
+            Todos
+          </button>
+          <button
+            class="tab-pill text-xs font-medium px-3.5 py-1.5 rounded-full border border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+          >
+            Hoje disponível
+          </button>
+          <button
+            class="tab-pill text-xs font-medium px-3.5 py-1.5 rounded-full border border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+          >
+            Até R$100
+          </button>
+          <button
+            class="tab-pill text-xs font-medium px-3.5 py-1.5 rounded-full border border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+          >
+            Até 60 min
+          </button>
+        </div>
+
+        <!-- Service cards grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Card 1 -->
+          <article
+            class="service-card bg-white border border-stone-200 rounded-2xl p-5 flex flex-col"
+          >
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path
+                    d="M9 2a5 5 0 100 10A5 5 0 009 2zM4 16s-1-2 5-2 5 2 5 2"
+                    stroke="#0d9488"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <span
+                class="text-xs text-teal-700 bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-full font-medium"
+                >Saúde</span
+              >
+            </div>
+            <h3 class="font-medium text-stone-900 text-sm mb-1.5">
+              Consulta de Nutrição
+            </h3>
+            <p class="text-stone-400 text-xs leading-relaxed flex-1 mb-4">
+              Avaliação nutricional completa com plano alimentar personalizado
+              para seus objetivos.
+            </p>
+            <div class="flex items-center gap-4 text-xs text-stone-400 mb-4">
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle
+                    cx="6"
+                    cy="6"
+                    r="5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                  />
+                  <path
+                    d="M6 3.5V6l2 1.5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                60 min
+              </span>
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M2 10L6 2l4 8H2z"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                8 vagas/dia
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between border-t border-stone-100 pt-4"
+            >
+              <p class="num-accent font-medium text-stone-900">
+                R$ 150<span class="text-stone-400 font-normal text-xs"
+                  >/sessão</span
+                >
+              </p>
+              <button
+                onclick="
+                  document.getElementById('modal-overlay').classList.add('open')
+                "
+                class="px-4 py-2 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all"
+              >
+                Agendar
+              </button>
+            </div>
+          </article>
+
+          <!-- Card 2 -->
+          <article
+            class="service-card bg-white border border-stone-200 rounded-2xl p-5 flex flex-col"
+          >
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center flex-shrink-0"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <rect
+                    x="2"
+                    y="3"
+                    width="14"
+                    height="12"
+                    rx="2"
+                    stroke="#78716c"
+                    stroke-width="1.5"
+                  />
+                  <path
+                    d="M6 1v4M12 1v4M2 8h14"
+                    stroke="#78716c"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <span
+                class="text-xs text-stone-600 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-full font-medium"
+                >Consultoria</span
+              >
+            </div>
+            <h3 class="font-medium text-stone-900 text-sm mb-1.5">
+              Mentoria de Carreira
+            </h3>
+            <p class="text-stone-400 text-xs leading-relaxed flex-1 mb-4">
+              Sessão individual para planejamento de carreira, revisão de
+              currículo e preparação para entrevistas.
+            </p>
+            <div class="flex items-center gap-4 text-xs text-stone-400 mb-4">
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle
+                    cx="6"
+                    cy="6"
+                    r="5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                  />
+                  <path
+                    d="M6 3.5V6l2 1.5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                45 min
+              </span>
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M2 10L6 2l4 8H2z"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                5 vagas/dia
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between border-t border-stone-100 pt-4"
+            >
+              <p class="num-accent font-medium text-stone-900">
+                R$ 90<span class="text-stone-400 font-normal text-xs"
+                  >/sessão</span
+                >
+              </p>
+              <button
+                onclick="
+                  document.getElementById('modal-overlay').classList.add('open')
+                "
+                class="px-4 py-2 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all"
+              >
+                Agendar
+              </button>
+            </div>
+          </article>
+
+          <!-- Card 3 -->
+          <article
+            class="service-card bg-white border border-stone-200 rounded-2xl p-5 flex flex-col"
+          >
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path
+                    d="M9 2L2 7v9h5v-5h4v5h5V7L9 2z"
+                    stroke="#7c3aed"
+                    stroke-width="1.5"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <span
+                class="text-xs text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-1 rounded-full font-medium"
+                >Educação</span
+              >
+            </div>
+            <h3 class="font-medium text-stone-900 text-sm mb-1.5">
+              Aula Particular de Matemática
+            </h3>
+            <p class="text-stone-400 text-xs leading-relaxed flex-1 mb-4">
+              Reforço escolar e preparação para vestibulares com método ativo e
+              personalizado.
+            </p>
+            <div class="flex items-center gap-4 text-xs text-stone-400 mb-4">
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle
+                    cx="6"
+                    cy="6"
+                    r="5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                  />
+                  <path
+                    d="M6 3.5V6l2 1.5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                90 min
+              </span>
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M2 10L6 2l4 8H2z"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                6 vagas/dia
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between border-t border-stone-100 pt-4"
+            >
+              <p class="num-accent font-medium text-stone-900">
+                R$ 75<span class="text-stone-400 font-normal text-xs"
+                  >/sessão</span
+                >
+              </p>
+              <button
+                onclick="
+                  document.getElementById('modal-overlay').classList.add('open')
+                "
+                class="px-4 py-2 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all"
+              >
+                Agendar
+              </button>
+            </div>
+          </article>
+
+          <!-- Card 4 -->
+          <article
+            class="service-card bg-white border border-stone-200 rounded-2xl p-5 flex flex-col"
+          >
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path
+                    d="M9 3C9 3 4 5.5 4 10a5 5 0 0010 0C14 5.5 9 3 9 3z"
+                    stroke="#e11d48"
+                    stroke-width="1.5"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <span
+                class="text-xs text-rose-700 bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-full font-medium"
+                >Beleza</span
+              >
+            </div>
+            <h3 class="font-medium text-stone-900 text-sm mb-1.5">
+              Design de Sobrancelhas
+            </h3>
+            <p class="text-stone-400 text-xs leading-relaxed flex-1 mb-4">
+              Modelagem e design personalizado com técnicas de henna e
+              pigmentação para um olhar marcante.
+            </p>
+            <div class="flex items-center gap-4 text-xs text-stone-400 mb-4">
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle
+                    cx="6"
+                    cy="6"
+                    r="5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                  />
+                  <path
+                    d="M6 3.5V6l2 1.5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                30 min
+              </span>
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M2 10L6 2l4 8H2z"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                8 vagas/dia
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between border-t border-stone-100 pt-4"
+            >
+              <p class="num-accent font-medium text-stone-900">
+                R$ 50<span class="text-stone-400 font-normal text-xs"
+                  >/sessão</span
+                >
+              </p>
+              <button
+                onclick="
+                  document.getElementById('modal-overlay').classList.add('open')
+                "
+                class="px-4 py-2 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all"
+              >
+                Agendar
+              </button>
+            </div>
+          </article>
+
+          <!-- Card 5 -->
+          <article
+            class="service-card bg-white border border-stone-200 rounded-2xl p-5 flex flex-col"
+          >
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path
+                    d="M5 9l3 3 5-6"
+                    stroke="#d97706"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle
+                    cx="9"
+                    cy="9"
+                    r="7"
+                    stroke="#d97706"
+                    stroke-width="1.4"
+                  />
+                </svg>
+              </div>
+              <span
+                class="text-xs text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full font-medium"
+                >Saúde</span
+              >
+            </div>
+            <h3 class="font-medium text-stone-900 text-sm mb-1.5">
+              Sessão de Psicoterapia
+            </h3>
+            <p class="text-stone-400 text-xs leading-relaxed flex-1 mb-4">
+              Atendimento online ou presencial com abordagem
+              cognitivo-comportamental por profissional registrado.
+            </p>
+            <div class="flex items-center gap-4 text-xs text-stone-400 mb-4">
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle
+                    cx="6"
+                    cy="6"
+                    r="5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                  />
+                  <path
+                    d="M6 3.5V6l2 1.5"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                50 min
+              </span>
+              <span class="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M2 10L6 2l4 8H2z"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                4 vagas/dia
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between border-t border-stone-100 pt-4"
+            >
+              <p class="num-accent font-medium text-stone-900">
+                R$ 180<span class="text-stone-400 font-normal text-xs"
+                  >/sessão</span
+                >
+              </p>
+              <button
+                onclick="
+                  document.getElementById('modal-overlay').classList.add('open')
+                "
+                class="px-4 py-2 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all"
+              >
+                Agendar
+              </button>
+            </div>
+          </article>
+
+          <!-- Card 6 — Inactive / Esgotado -->
+          <article
+            class="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col opacity-60 select-none"
+          >
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center flex-shrink-0"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path
+                    d="M3 9h12M9 3l6 6-6 6"
+                    stroke="#a8a29e"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <span
+                class="text-xs text-stone-400 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-full font-medium"
+                >Esgotado</span
+              >
+            </div>
+            <h3 class="font-medium text-stone-500 text-sm mb-1.5">
+              Personal Trainer Online
+            </h3>
+            <p class="text-stone-300 text-xs leading-relaxed flex-1 mb-4">
+              Treinos personalizados com acompanhamento via app. Sem vagas
+              disponíveis para hoje.
+            </p>
+            <div class="flex items-center gap-4 text-xs text-stone-300 mb-4">
+              <span>120 min</span>
+              <span>0 vagas hoje</span>
+            </div>
+            <div
+              class="flex items-center justify-between border-t border-stone-100 pt-4"
+            >
+              <p class="num-accent font-medium text-stone-400">
+                R$ 200<span class="text-stone-300 font-normal text-xs"
+                  >/sessão</span
+                >
+              </p>
+              <button
+                disabled
+                class="px-4 py-2 text-xs font-medium bg-stone-100 text-stone-300 rounded-lg cursor-not-allowed"
+              >
+                Indisponível
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-center gap-2 mt-10">
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-400 hover:bg-stone-50"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path
+                d="M9 3L5 7l4 4"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded-lg bg-teal-600 text-white text-xs font-medium"
+          >
+            1
+          </button>
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 text-xs hover:bg-stone-50"
+          >
+            2
+          </button>
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 text-xs hover:bg-stone-50"
+          >
+            3
+          </button>
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-400 hover:bg-stone-50"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path
+                d="M5 3l4 4-4 4"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+       MODAL DE AGENDAMENTO (hidden by default)
+  ═══════════════════════════════════════════ -->
+    <div
+      id="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Agendar serviço"
+    >
+      <div id="modal-box" class="p-6 sm:p-8">
+        <!-- Modal drag handle (mobile) -->
+        <div class="flex justify-center mb-5 sm:hidden">
+          <div class="w-10 h-1 bg-stone-200 rounded-full"></div>
+        </div>
+
+        <!-- Modal header -->
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <h2 class="text-base font-medium text-stone-900">
+              Agendar Serviço
+            </h2>
+            <p class="text-xs text-stone-400 mt-0.5">
+              Consulta de Nutrição — 60 min
+            </p>
+          </div>
+          <button
+            id="close-modal-btn"
+            class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-all flex-shrink-0"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M2 2l12 12M14 2L2 14"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Form -->
+        <form class="flex flex-col gap-4" onsubmit="return false;">
+          <!-- Name + Email -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-stone-500"
+                >Nome completo <span class="text-teal-600">*</span></label
+              >
+              <input
+                type="text"
+                placeholder="Seu nome"
+                class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-800 placeholder:text-stone-300"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-stone-500"
+                >E-mail <span class="text-teal-600">*</span></label
+              >
+              <input
+                type="email"
+                placeholder="seu@email.com"
+                class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-800 placeholder:text-stone-300"
+              />
+            </div>
+          </div>
+
+          <!-- Phone -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-medium text-stone-500"
+              >Telefone / WhatsApp</label
+            >
+            <input
+              type="tel"
+              placeholder="(21) 99999-0000"
+              class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-800 placeholder:text-stone-300"
+            />
+          </div>
+
+          <!-- Date + Time -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-stone-500"
+                >Data <span class="text-teal-600">*</span></label
+              >
+              <input
+                type="date"
+                class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-600"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-medium text-stone-500"
+                >Horário disponível <span class="text-teal-600">*</span></label
+              >
+              <select
+                class="w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-stone-600 appearance-none cursor-pointer"
+              >
+                <option value="">Selecionar horário</option>
+                <option>09:00 — disponível</option>
+                <option>10:00 — disponível</option>
+                <option>11:00 — disponível</option>
+                <option disabled>13:00 — ocupado</option>
+                <option>14:00 — disponível</option>
+                <option>15:00 — disponível</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Availability visual -->
+          <div class="bg-stone-50 border border-stone-200 rounded-xl p-4">
+            <p class="text-xs font-medium text-stone-500 mb-3">
+              Disponibilidade do dia
+            </p>
+            <div class="flex gap-1.5 flex-wrap">
+              <span
+                class="text-xs bg-teal-100 text-teal-700 px-2.5 py-1 rounded-lg font-mono"
+                >09:00</span
+              >
+              <span
+                class="text-xs bg-teal-100 text-teal-700 px-2.5 py-1 rounded-lg font-mono"
+                >10:00</span
+              >
+              <span
+                class="text-xs bg-teal-100 text-teal-700 px-2.5 py-1 rounded-lg font-mono"
+                >11:00</span
+              >
+              <span
+                class="text-xs bg-stone-200 text-stone-400 px-2.5 py-1 rounded-lg font-mono line-through"
+                >13:00</span
+              >
+              <span
+                class="text-xs bg-teal-100 text-teal-700 px-2.5 py-1 rounded-lg font-mono"
+                >14:00</span
+              >
+              <span
+                class="text-xs bg-teal-100 text-teal-700 px-2.5 py-1 rounded-lg font-mono"
+                >15:00</span
+              >
+              <span
+                class="text-xs bg-stone-200 text-stone-400 px-2.5 py-1 rounded-lg font-mono line-through"
+                >16:00</span
+              >
+            </div>
+            <div class="flex gap-4 mt-3 text-xs text-stone-400">
+              <span class="flex items-center gap-1.5"
+                ><span
+                  class="w-2.5 h-2.5 rounded bg-teal-100 inline-block"
+                ></span
+                >Disponível</span
+              >
+              <span class="flex items-center gap-1.5"
+                ><span
+                  class="w-2.5 h-2.5 rounded bg-stone-200 inline-block"
+                ></span
+                >Ocupado</span
+              >
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="flex flex-col sm:flex-row gap-3 mt-2">
+            <button
+              type="button"
+              id="cancel-btn"
+              class="order-2 sm:order-1 flex-1 py-3 text-sm font-medium text-stone-500 hover:text-stone-800 border border-stone-200 rounded-xl hover:bg-stone-50 transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="order-1 sm:order-2 flex-1 py-3 text-sm font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all"
+            >
+              Confirmar agendamento
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+       SEÇÃO PRIVADA — PAINEL DO PRESTADOR
+  ═══════════════════════════════════════════ -->
+    <section id="panel" class="border-t border-stone-200 pb-20 hidden">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-10">
+        <!-- Panel header -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">
+          <div class="flex items-center gap-3 flex-1">
+            <div
+              class="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white text-sm font-medium"
+            >
+              MA
+            </div>
+            <div>
+              <h2 class="text-base font-medium text-stone-900">
+                Painel do Prestador
+              </h2>
+              <p class="text-xs text-stone-400">
+                Maria Almeida · Nutricionista
+              </p>
+            </div>
+          </div>
+          <div
+            class="flex items-center gap-2 text-xs text-stone-400 font-mono bg-stone-50 border border-stone-200 px-3 py-2 rounded-xl"
+          >
+            <span
+              class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"
+            ></span>
+            Sessão ativa
+          </div>
+        </div>
+
+        <!-- KPI strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+          <div class="bg-white border border-stone-200 rounded-xl p-4">
+            <p class="text-xs text-stone-400 mb-1">Meus serviços</p>
+            <p class="num-accent text-2xl font-medium text-stone-900">
+              3<span class="text-stone-300 text-base">/5</span>
+            </p>
+          </div>
+          <div class="bg-white border border-stone-200 rounded-xl p-4">
+            <p class="text-xs text-stone-400 mb-1">Agendamentos hoje</p>
+            <p class="num-accent text-2xl font-medium text-stone-900">7</p>
+          </div>
+          <div class="bg-white border border-stone-200 rounded-xl p-4">
+            <p class="text-xs text-stone-400 mb-1">Este mês</p>
+            <p class="num-accent text-2xl font-medium text-stone-900">34</p>
+          </div>
+          <div class="bg-white border border-stone-200 rounded-xl p-4">
+            <p class="text-xs text-stone-400 mb-1">Receita (mês)</p>
+            <p class="num-accent text-2xl font-medium text-teal-700">
+              R$&nbsp;5.1k
+            </p>
+          </div>
+        </div>
+
+        <!-- ── Meus Serviços ── -->
+        <div class="mb-10">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <h3 class="font-medium text-stone-900 text-sm">Meus Serviços</h3>
+              <p class="text-xs text-stone-400 mt-0.5">
+                Você pode criar até 5 serviços
+              </p>
+            </div>
+            <button
+              class="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path
+                  d="M6 1v10M1 6h10"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Novo Serviço
+            </button>
+          </div>
+
+          <!-- Mobile cards list -->
+          <div class="flex flex-col gap-3 sm:hidden">
+            <div class="bg-white border border-stone-200 rounded-xl p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="font-medium text-stone-900 text-sm truncate"
+                      >Consulta de Nutrição</span
+                    >
+                    <span
+                      class="text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full flex-shrink-0"
+                      >Ativo</span
+                    >
+                  </div>
+                  <p class="text-xs text-stone-400">
+                    60 min · R$ 150 · 8 vagas/dia
+                  </p>
+                </div>
+                <div class="flex gap-2 flex-shrink-0">
+                  <button
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 hover:bg-stone-50 text-stone-400 hover:text-stone-700"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path
+                        d="M9 1.5l2.5 2.5L4 11.5H1.5V9L9 1.5z"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 hover:bg-rose-50 text-stone-400 hover:text-rose-600"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path
+                        d="M1.5 3.5h10M4 3.5V2.5a1 1 0 011-1h3a1 1 0 011 1v1M5 6v4M8 6v4M2.5 3.5l.5 7.5a1 1 0 001 1h5a1 1 0 001-1l.5-7.5"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white border border-stone-200 rounded-xl p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="font-medium text-stone-900 text-sm truncate"
+                      >Retorno Nutricional</span
+                    >
+                    <span
+                      class="text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full flex-shrink-0"
+                      >Ativo</span
+                    >
+                  </div>
+                  <p class="text-xs text-stone-400">
+                    30 min · R$ 80 · 5 vagas/dia
+                  </p>
+                </div>
+                <div class="flex gap-2 flex-shrink-0">
+                  <button
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 hover:bg-stone-50 text-stone-400 hover:text-stone-700"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path
+                        d="M9 1.5l2.5 2.5L4 11.5H1.5V9L9 1.5z"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 hover:bg-rose-50 text-stone-400 hover:text-rose-600"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path
+                        d="M1.5 3.5h10M4 3.5V2.5a1 1 0 011-1h3a1 1 0 011 1v1M5 6v4M8 6v4M2.5 3.5l.5 7.5a1 1 0 001 1h5a1 1 0 001-1l.5-7.5"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white border border-stone-200 rounded-xl p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="font-medium text-stone-900 text-sm truncate"
+                      >Avaliação Corporal</span
+                    >
+                    <span
+                      class="text-xs text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full flex-shrink-0"
+                      >Inativo</span
+                    >
+                  </div>
+                  <p class="text-xs text-stone-400">
+                    45 min · R$ 120 · 3 vagas/dia
+                  </p>
+                </div>
+                <div class="flex gap-2 flex-shrink-0">
+                  <button
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 hover:bg-stone-50 text-stone-400 hover:text-stone-700"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path
+                        d="M9 1.5l2.5 2.5L4 11.5H1.5V9L9 1.5z"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-stone-200 hover:bg-rose-50 text-stone-400 hover:text-rose-600"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path
+                        d="M1.5 3.5h10M4 3.5V2.5a1 1 0 011-1h3a1 1 0 011 1v1M5 6v4M8 6v4M2.5 3.5l.5 7.5a1 1 0 001 1h5a1 1 0 001-1l.5-7.5"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop table -->
+          <div
+            class="hidden sm:block bg-white border border-stone-200 rounded-2xl overflow-hidden"
+          >
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-stone-100">
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Serviço
+                  </th>
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Duração
+                  </th>
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Preço
+                  </th>
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Vagas/dia
+                  </th>
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Status
+                  </th>
+                  <th
+                    class="text-right text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="hoverable border-b border-stone-100">
+                  <td class="px-5 py-4 font-medium text-stone-900 text-sm">
+                    Consulta de Nutrição
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm font-mono">
+                    60 min
+                  </td>
+                  <td class="px-5 py-4 text-stone-900 text-sm font-mono">
+                    R$ 150
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm">8</td>
+                  <td class="px-5 py-4">
+                    <span
+                      class="text-xs text-teal-700 bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-full font-medium"
+                      >Ativo</span
+                    >
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button
+                        class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg hover:bg-stone-50 text-stone-600 font-medium transition-all"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-stone-400 font-medium transition-all"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="hoverable border-b border-stone-100">
+                  <td class="px-5 py-4 font-medium text-stone-900 text-sm">
+                    Retorno Nutricional
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm font-mono">
+                    30 min
+                  </td>
+                  <td class="px-5 py-4 text-stone-900 text-sm font-mono">
+                    R$ 80
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm">5</td>
+                  <td class="px-5 py-4">
+                    <span
+                      class="text-xs text-teal-700 bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-full font-medium"
+                      >Ativo</span
+                    >
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button
+                        class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg hover:bg-stone-50 text-stone-600 font-medium transition-all"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-stone-400 font-medium transition-all"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="hoverable">
+                  <td class="px-5 py-4 font-medium text-stone-500 text-sm">
+                    Avaliação Corporal
+                  </td>
+                  <td class="px-5 py-4 text-stone-400 text-sm font-mono">
+                    45 min
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm font-mono">
+                    R$ 120
+                  </td>
+                  <td class="px-5 py-4 text-stone-400 text-sm">3</td>
+                  <td class="px-5 py-4">
+                    <span
+                      class="text-xs text-stone-500 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-full font-medium"
+                      >Inativo</span
+                    >
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button
+                        class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg hover:bg-stone-50 text-stone-600 font-medium transition-all"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-stone-400 font-medium transition-all"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Service limit indicator -->
+          <div class="mt-3 flex items-center gap-3">
+            <div class="flex-1 bg-stone-200 h-1 rounded-full overflow-hidden">
+              <div class="bg-teal-500 h-full w-3/5 rounded-full"></div>
+            </div>
+            <span class="text-xs text-stone-400 font-mono flex-shrink-0"
+              >3 / 5 serviços</span
+            >
+          </div>
+        </div>
+
+        <!-- ── Meus Agendamentos ── -->
+        <div>
+          <div
+            class="flex flex-col sm:flex-row sm:items-center gap-3 justify-between mb-5"
+          >
+            <div>
+              <h3 class="font-medium text-stone-900 text-sm">
+                Meus Agendamentos
+              </h3>
+              <p class="text-xs text-stone-400 mt-0.5">
+                Agendamentos recebidos pelos seus serviços
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <select
+                class="px-3 py-2 text-xs bg-white border border-stone-200 rounded-lg text-stone-600 appearance-none cursor-pointer"
+              >
+                <option>Todos os status</option>
+                <option>Agendado</option>
+                <option>Concluído</option>
+                <option>Cancelado</option>
+              </select>
+              <input
+                type="date"
+                class="px-3 py-2 text-xs bg-white border border-stone-200 rounded-lg text-stone-600"
+              />
+            </div>
+          </div>
+
+          <!-- Mobile appointments list -->
+          <div class="flex flex-col gap-3 sm:hidden">
+            <div class="bg-white border border-stone-200 rounded-xl p-4">
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p class="font-medium text-stone-900 text-sm">
+                    Lucas Ferreira
+                  </p>
+                  <p class="text-xs text-stone-400">lucas@email.com</p>
+                </div>
+                <span
+                  class="text-xs badge-scheduled px-2.5 py-1 rounded-full font-medium flex-shrink-0"
+                  >Agendado</span
+                >
+              </div>
+              <div class="flex gap-4 text-xs text-stone-400 mb-3">
+                <span>Consulta de Nutrição</span>
+                <span class="font-mono">12 Jul · 09:00</span>
+              </div>
+              <select
+                class="w-full px-3 py-2 text-xs border border-stone-200 rounded-lg bg-white text-stone-600 appearance-none"
+              >
+                <option>Agendado</option>
+                <option>Concluído</option>
+                <option>Cancelado</option>
+              </select>
+            </div>
+
+            <div class="bg-white border border-stone-200 rounded-xl p-4">
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p class="font-medium text-stone-900 text-sm">Ana Costa</p>
+                  <p class="text-xs text-stone-400">ana.costa@email.com</p>
+                </div>
+                <span
+                  class="text-xs badge-completed px-2.5 py-1 rounded-full font-medium flex-shrink-0"
+                  >Concluído</span
+                >
+              </div>
+              <div class="flex gap-4 text-xs text-stone-400 mb-3">
+                <span>Retorno Nutricional</span>
+                <span class="font-mono">11 Jul · 14:00</span>
+              </div>
+              <select
+                class="w-full px-3 py-2 text-xs border border-stone-200 rounded-lg bg-white text-stone-600 appearance-none"
+              >
+                <option>Agendado</option>
+                <option selected>Concluído</option>
+                <option>Cancelado</option>
+              </select>
+            </div>
+
+            <div class="bg-white border border-stone-200 rounded-xl p-4">
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p class="font-medium text-stone-900 text-sm">Pedro Souza</p>
+                  <p class="text-xs text-stone-400">pedro.s@email.com</p>
+                </div>
+                <span
+                  class="text-xs badge-cancelled px-2.5 py-1 rounded-full font-medium flex-shrink-0"
+                  >Cancelado</span
+                >
+              </div>
+              <div class="flex gap-4 text-xs text-stone-400 mb-3">
+                <span>Consulta de Nutrição</span>
+                <span class="font-mono">11 Jul · 10:00</span>
+              </div>
+              <select
+                class="w-full px-3 py-2 text-xs border border-stone-200 rounded-lg bg-white text-stone-600 appearance-none"
+              >
+                <option>Agendado</option>
+                <option>Concluído</option>
+                <option selected>Cancelado</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Desktop appointments table -->
+          <div
+            class="hidden sm:block bg-white border border-stone-200 rounded-2xl overflow-hidden"
+          >
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-stone-100">
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Cliente
+                  </th>
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Serviço
+                  </th>
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Data
+                  </th>
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Horário
+                  </th>
+                  <th
+                    class="text-left text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Status
+                  </th>
+                  <th
+                    class="text-right text-xs font-medium text-stone-400 px-5 py-3.5"
+                  >
+                    Ação
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="hoverable border-b border-stone-100">
+                  <td class="px-5 py-4">
+                    <div>
+                      <p class="font-medium text-stone-900 text-sm">
+                        Lucas Ferreira
+                      </p>
+                      <p class="text-xs text-stone-400">lucas@email.com</p>
+                    </div>
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm">
+                    Consulta de Nutrição
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm font-mono">
+                    12 Jul 2025
+                  </td>
+                  <td
+                    class="px-5 py-4 text-stone-900 text-sm font-mono font-medium"
+                  >
+                    09:00
+                  </td>
+                  <td class="px-5 py-4">
+                    <span
+                      class="text-xs badge-scheduled px-2.5 py-1 rounded-full font-medium"
+                      >Agendado</span
+                    >
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <select
+                      class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg bg-white text-stone-600 appearance-none cursor-pointer hover:border-stone-300 transition-colors"
+                    >
+                      <option selected>Agendado</option>
+                      <option>Concluído</option>
+                      <option>Cancelado</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr class="hoverable border-b border-stone-100">
+                  <td class="px-5 py-4">
+                    <div>
+                      <p class="font-medium text-stone-900 text-sm">
+                        Ana Costa
+                      </p>
+                      <p class="text-xs text-stone-400">ana.costa@email.com</p>
+                    </div>
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm">
+                    Retorno Nutricional
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm font-mono">
+                    11 Jul 2025
+                  </td>
+                  <td
+                    class="px-5 py-4 text-stone-900 text-sm font-mono font-medium"
+                  >
+                    14:00
+                  </td>
+                  <td class="px-5 py-4">
+                    <span
+                      class="text-xs badge-completed px-2.5 py-1 rounded-full font-medium"
+                      >Concluído</span
+                    >
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <select
+                      class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg bg-white text-stone-600 appearance-none cursor-pointer hover:border-stone-300 transition-colors"
+                    >
+                      <option>Agendado</option>
+                      <option selected>Concluído</option>
+                      <option>Cancelado</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr class="hoverable border-b border-stone-100">
+                  <td class="px-5 py-4">
+                    <div>
+                      <p class="font-medium text-stone-900 text-sm">
+                        Pedro Souza
+                      </p>
+                      <p class="text-xs text-stone-400">pedro.s@email.com</p>
+                    </div>
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm">
+                    Consulta de Nutrição
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm font-mono">
+                    11 Jul 2025
+                  </td>
+                  <td
+                    class="px-5 py-4 text-stone-900 text-sm font-mono font-medium"
+                  >
+                    10:00
+                  </td>
+                  <td class="px-5 py-4">
+                    <span
+                      class="text-xs badge-cancelled px-2.5 py-1 rounded-full font-medium"
+                      >Cancelado</span
+                    >
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <select
+                      class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg bg-white text-stone-600 appearance-none cursor-pointer hover:border-stone-300 transition-colors"
+                    >
+                      <option>Agendado</option>
+                      <option>Concluído</option>
+                      <option selected>Cancelado</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr class="hoverable border-b border-stone-100">
+                  <td class="px-5 py-4">
+                    <div>
+                      <p class="font-medium text-stone-900 text-sm">
+                        Beatriz Lima
+                      </p>
+                      <p class="text-xs text-stone-400">bea.lima@email.com</p>
+                    </div>
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm">
+                    Avaliação Corporal
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm font-mono">
+                    12 Jul 2025
+                  </td>
+                  <td
+                    class="px-5 py-4 text-stone-900 text-sm font-mono font-medium"
+                  >
+                    11:00
+                  </td>
+                  <td class="px-5 py-4">
+                    <span
+                      class="text-xs badge-scheduled px-2.5 py-1 rounded-full font-medium"
+                      >Agendado</span
+                    >
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <select
+                      class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg bg-white text-stone-600 appearance-none cursor-pointer hover:border-stone-300 transition-colors"
+                    >
+                      <option selected>Agendado</option>
+                      <option>Concluído</option>
+                      <option>Cancelado</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr class="hoverable">
+                  <td class="px-5 py-4">
+                    <div>
+                      <p class="font-medium text-stone-900 text-sm">
+                        Carlos Mendes
+                      </p>
+                      <p class="text-xs text-stone-400">carlos.m@email.com</p>
+                    </div>
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm">
+                    Consulta de Nutrição
+                  </td>
+                  <td class="px-5 py-4 text-stone-500 text-sm font-mono">
+                    12 Jul 2025
+                  </td>
+                  <td
+                    class="px-5 py-4 text-stone-900 text-sm font-mono font-medium"
+                  >
+                    15:00
+                  </td>
+                  <td class="px-5 py-4">
+                    <span
+                      class="text-xs badge-scheduled px-2.5 py-1 rounded-full font-medium"
+                      >Agendado</span
+                    >
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <select
+                      class="px-3 py-1.5 text-xs border border-stone-200 rounded-lg bg-white text-stone-600 appearance-none cursor-pointer hover:border-stone-300 transition-colors"
+                    >
+                      <option selected>Agendado</option>
+                      <option>Concluído</option>
+                      <option>Cancelado</option>
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════════ -->
+    <footer class="border-t border-stone-200 bg-white">
+      <div
+        class="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4"
+      >
+        <span class="font-medium text-stone-900 text-sm"
+          >agenda<span class="text-teal-600">.</span></span
+        >
+        <p class="text-xs text-stone-400">
+          © 2025 Agenda. Todos os direitos reservados.
+        </p>
+        <div class="flex gap-5 text-xs text-stone-400">
+          <a href="#" class="hover:text-stone-700">Privacidade</a>
+          <a href="#" class="hover:text-stone-700">Termos</a>
+          <a href="#" class="hover:text-stone-700">Suporte</a>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ═══════════════════════════════════════════
+       MINIMAL JS — UI interactions only
+  ═══════════════════════════════════════════ -->
+    <script type="module" src="./js/ui.js"></script>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
