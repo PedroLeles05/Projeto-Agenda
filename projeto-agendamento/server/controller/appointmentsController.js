@@ -7,9 +7,17 @@ function getOccupiedHours(appointmentsList, serviceDuration) {
   const occupiedHours = new Set();
 
   appointmentsList.forEach((appt) => {
-    const appointmentHour = new Date(appt.date).getHours();
+    const start = appt.startAt ? new Date(appt.startAt) : new Date(appt.date);
+    const end = appt.endAt
+      ? new Date(appt.endAt)
+      : new Date(start.getTime() + serviceDuration * 60 * 1000);
 
-    const hoursOccupied = Math.ceil(serviceDuration / 60);
+    const durationMs = Math.max(
+      serviceDuration * 60 * 1000,
+      end.getTime() - start.getTime(),
+    );
+    const hoursOccupied = Math.max(1, Math.ceil(durationMs / (60 * 60 * 1000)));
+    const appointmentHour = start.getHours();
 
     for (let i = 0; i < hoursOccupied; i++) {
       occupiedHours.add(appointmentHour + i);
@@ -31,7 +39,12 @@ function hoursAvailable(requestedHour, hoursNeeded, occupiedHours) {
 
 function parseDate(dateString) {
   if (!dateString) return null;
-  const date = new Date(dateString);
+  // Dividir string "YYYY-MM-DD" em partes para evitar interpretação como UTC
+  const parts = dateString.split("-");
+  if (parts.length !== 3) return null;
+  const [year, month, day] = parts.map(Number);
+  // Criar data usando hora local, não UTC
+  const date = new Date(year, month - 1, day, 0, 0, 0, 0);
   if (isNaN(date.getTime())) return null;
   return date;
 }
@@ -48,6 +61,7 @@ const appointmentsController = {
           "Parâmetro 'data' é obrigatório (formato: YYYY-MM-DD)",
         );
         erro.status = 400;
+        erro.errorCode = "MISSING_DATE";
         return next(erro);
       }
 
@@ -55,6 +69,7 @@ const appointmentsController = {
       if (!requestedDate) {
         const erro = new Error("Data inválida");
         erro.status = 400;
+        erro.errorCode = "INVALID_DATE";
         return next(erro);
       }
 
@@ -62,13 +77,48 @@ const appointmentsController = {
       if (!servico) {
         const erro = new Error("Serviço não encontrado");
         erro.status = 404;
+        erro.errorCode = "SERVICE_NOT_FOUND";
         return next(erro);
       }
 
-      const workingHour = await working.find({ userId: servico.userId });
+      if (servico.active === false) {
+        const erro = new Error("Serviço inativo");
+        erro.status = 400;
+        erro.errorCode = "SERVICE_INACTIVE";
+        return next(erro);
+      }
+
+      const workingHour = await working.findOne({ userId: servico.userId });
       if (!workingHour) {
         const erro = new Error("Tempo de expediente não encontrado");
         erro.status = 404;
+        erro.errorCode = "WORKING_HOURS_NOT_FOUND";
+        return next(erro);
+      }
+
+      // Validar dia da semana
+      const dayOfWeek = requestedDate
+        .toLocaleDateString("pt-BR", {
+          weekday: "long",
+        })
+        .split("-")[0];
+      const daysMap = {
+        segunda: "monday",
+        terça: "tuesday",
+        quarta: "wednesday",
+        quinta: "thursday",
+        sexta: "friday",
+        sábado: "saturday",
+        domingo: "sunday",
+      };
+      const dayKey = daysMap[dayOfWeek] || dayOfWeek;
+
+      if (!workingHour.workingDays[dayKey]) {
+        const erro = new Error(
+          `Prestador não trabalha nesse dia: ${dayOfWeek}`,
+        );
+        erro.status = 400;
+        erro.errorCode = "DAY_NOT_AVAILABLE";
         return next(erro);
       }
 
@@ -85,8 +135,12 @@ const appointmentsController = {
       endDay.setHours(23, 59, 59, 999);
 
       const appointmentsList = await appointments.find({
-        date: { $gte: startDay, $lte: endDay },
-        status: { $ne: "cancelled", $ne: "completed" },
+        $or: [
+          { startAt: { $gte: startDay, $lte: endDay } },
+          { endAt: { $gte: startDay, $lte: endDay } },
+          { startAt: { $lt: startDay }, endAt: { $gt: endDay } },
+        ],
+        status: { $nin: ["cancelled", "completed"] },
       });
 
       const occupiedHours = getOccupiedHours(
@@ -98,6 +152,16 @@ const appointmentsController = {
 
       const availableHours = allSlots.filter((slot) => {
         const hour = slot.getHours();
+
+        // Verificar se a hora está no intervalo de descanso
+        if (
+          workingHour.breakTimeStart &&
+          workingHour.breakTimeEnd &&
+          hour >= workingHour.breakTimeStart &&
+          hour < workingHour.breakTimeEnd
+        ) {
+          return false;
+        }
 
         return (
           hoursAvailable(hour, hoursNeeded, occupiedHours) && slot > new Date()
@@ -125,7 +189,71 @@ const appointmentsController = {
   },
   create: async (req, res, next) => {
     try {
+      const mongoose = require("mongoose");
+
       const { nome, email, tel, data, hora, serviceId } = req.body;
+
+      if (!nome || typeof nome !== "string" || nome.trim().length < 2) {
+        const erro = new Error("Nome inválido");
+        erro.status = 400;
+        erro.errorCode = "INVALID_NAME";
+        return next(erro);
+      }
+
+      if (
+        !email ||
+        typeof email !== "string" ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      ) {
+        const erro = new Error("E-mail inválido");
+        erro.status = 400;
+        erro.errorCode = "INVALID_EMAIL";
+        return next(erro);
+      }
+
+      if (
+        !tel ||
+        typeof tel !== "string" ||
+        tel.replace(/\D/g, "").length < 10
+      ) {
+        const erro = new Error("Telefone inválido");
+        erro.status = 400;
+        erro.errorCode = "INVALID_PHONE";
+        return next(erro);
+      }
+
+      if (!data || typeof data !== "string") {
+        const erro = new Error("Data inválida");
+        erro.status = 400;
+        erro.errorCode = "INVALID_DATE";
+        return next(erro);
+      }
+
+      if (!hora || typeof hora !== "string" || Number.isNaN(Number(hora))) {
+        const erro = new Error("Hora inválida");
+        erro.status = 400;
+        erro.errorCode = "INVALID_HOUR";
+        return next(erro);
+      }
+
+      const requestedHour = Number(hora);
+      if (
+        !Number.isInteger(requestedHour) ||
+        requestedHour < 0 ||
+        requestedHour > 23
+      ) {
+        const erro = new Error("Hora deve estar entre 0 e 23");
+        erro.status = 400;
+        erro.errorCode = "INVALID_HOUR_RANGE";
+        return next(erro);
+      }
+
+      if (!serviceId || !mongoose.Types.ObjectId.isValid(serviceId)) {
+        const erro = new Error("serviceId inválido");
+        erro.status = 400;
+        erro.errorCode = "INVALID_SERVICE_ID";
+        return next(erro);
+      }
 
       // Validar campos obrigatórios
       if (!nome || !email || !tel || !data || !hora || !serviceId) {
@@ -133,6 +261,7 @@ const appointmentsController = {
           "Os campos de: Nome, e-mail, telefone, data, hora e serviceId são obrigatórios",
         );
         erro.status = 400;
+        erro.errorCode = "MISSING_REQUIRED_FIELDS";
         return next(erro);
       }
 
@@ -141,6 +270,7 @@ const appointmentsController = {
       if (!dataCriada) {
         const erro = new Error("Data inválida");
         erro.status = 400;
+        erro.errorCode = "INVALID_DATE";
         return next(erro);
       }
 
@@ -150,6 +280,7 @@ const appointmentsController = {
       if (dataCriada < hoje) {
         const erro = new Error("Não é permitido agendar em datas passadas");
         erro.status = 400;
+        erro.errorCode = "PAST_DATE_NOT_ALLOWED";
         return next(erro);
       }
 
@@ -158,6 +289,14 @@ const appointmentsController = {
       if (!servico) {
         const erro = new Error("Serviço não encontrado");
         erro.status = 404;
+        erro.errorCode = "SERVICE_NOT_FOUND";
+        return next(erro);
+      }
+
+      if (servico.active === false) {
+        const erro = new Error("Serviço inativo");
+        erro.status = 400;
+        erro.errorCode = "SERVICE_INACTIVE";
         return next(erro);
       }
 
@@ -166,6 +305,7 @@ const appointmentsController = {
       if (!workingHour) {
         const erro = new Error("Horário de expediente não encontrado");
         erro.status = 404;
+        erro.errorCode = "WORKING_HOURS_NOT_FOUND";
         return next(erro);
       }
 
@@ -191,21 +331,19 @@ const appointmentsController = {
           `Prestador não trabalha nesse dia: ${dayOfWeek}`,
         );
         erro.status = 400;
+        erro.errorCode = "DAY_NOT_AVAILABLE";
         return next(erro);
       }
 
       // Validar se a hora está dentro do horário de expediente
-      const requestedHour = parseInt(hora);
-      if (isNaN(requestedHour)) {
-        const erro = new Error("Hora inválida");
-        erro.status = 400;
-        return next(erro);
-      }
       if (
         requestedHour < workingHour.startTime ||
         requestedHour >= workingHour.endTime
       ) {
-        throw new Error(`Fora do expediente`);
+        const erro = new Error("Fora do expediente");
+        erro.status = 400;
+        erro.errorCode = "OUT_OF_WORKING_HOURS";
+        return next(erro);
       }
 
       // Validar intervalo de descanso
@@ -219,6 +357,7 @@ const appointmentsController = {
           `Horário em período de descanso (${workingHour.breakTimeStart}h-${workingHour.breakTimeEnd}h)`,
         );
         erro.status = 400;
+        erro.errorCode = "BREAK_TIME";
         return next(erro);
       }
 
@@ -228,9 +367,37 @@ const appointmentsController = {
       const endDay = new Date(dataCriada);
       endDay.setHours(23, 59, 59, 999);
 
+      const startAt = new Date(dataCriada);
+      startAt.setHours(requestedHour, 0, 0, 0);
+
+      const endAt = new Date(startAt);
+      endAt.setMinutes(endAt.getMinutes() + servico.duration);
+
+      const conflito = await appointments.findOne({
+        userId: servico.userId,
+        status: { $nin: ["cancelled", "completed"] },
+        $or: [
+          {
+            startAt: { $lt: endAt },
+            endAt: { $gt: startAt },
+          },
+        ],
+      });
+
+      if (conflito) {
+        const erro = new Error("Já existe um agendamento nesse intervalo");
+        erro.status = 409;
+        erro.errorCode = "APPOINTMENT_CONFLICT";
+        return next(erro);
+      }
+
       const appointmentsList = await appointments.find({
-        date: { $gte: startDay, $lte: endDay },
-        status: { $ne: "cancelled", $ne: "completed" },
+        $or: [
+          { startAt: { $gte: startDay, $lte: endDay } },
+          { endAt: { $gte: startDay, $lte: endDay } },
+          { startAt: { $lt: startDay }, endAt: { $gt: endDay } },
+        ],
+        status: { $nin: ["cancelled", "completed"] },
       });
 
       // Mapear horas ocupadas
@@ -248,7 +415,7 @@ const appointmentsController = {
           `Horário indisponível. Serviço requer ${hoursNeeded} hora(s) consecutiva(s) a partir das ${requestedHour}:00. Horas ocupadas: ${Array.from(occupiedHours).join(", ")}`,
         );
         erro.status = 409;
-        erro.errorCode = "HORARIO_OCUPADO";
+        erro.errorCode = "TIME_SLOT_UNAVAILABLE";
         return next(erro);
       }
 
@@ -258,6 +425,8 @@ const appointmentsController = {
         clientPhone: tel,
         date: dataCriada,
         time: hora,
+        startAt: startAt,
+        endAt: endAt,
         serviceId: serviceId,
         userId: servico.userId,
       });
@@ -276,7 +445,9 @@ const appointmentsController = {
     try {
       const appointmentsList = await appointments
         .find({ userId: req.user })
-        .select("date time status clientName clientEmail clientPhone")
+        .select(
+          "date time startAt endAt status clientName clientEmail clientPhone",
+        )
         .populate("serviceId", "title");
 
       res.status(200).json({
@@ -284,20 +455,40 @@ const appointmentsController = {
         agendamento: appointmentsList,
       });
     } catch (erro) {
-      ((erro = new Error("Erro ao ver agendamento")), (erro.status = 500));
-      return next(erro);
+      const error = new Error("Erro ao ver agendamento");
+      error.status = 500;
+      error.errorCode = "GET_APPOINTMENTS_ERROR";
+      return next(error);
     }
   },
   update: async (req, res, next) => {
     try {
+      const updatePayload = { ...req.body };
+
+      if (typeof updatePayload.status === "string") {
+        const normalizedStatus = updatePayload.status.trim().toLowerCase();
+        if (
+          normalizedStatus === "canceled" ||
+          normalizedStatus === "cancelado"
+        ) {
+          updatePayload.status = "cancelled";
+        } else if (
+          normalizedStatus === "concluido" ||
+          normalizedStatus === "concluído"
+        ) {
+          updatePayload.status = "completed";
+        }
+      }
+
       const updateAgendamento = await appointments.findOneAndUpdate(
         { _id: req.params.id, userId: req.user },
-        req.body,
-        { returnDocument: "after" },
+        updatePayload,
+        { returnDocument: "after", runValidators: true },
       );
       if (!updateAgendamento) {
         const erro = new Error("Agendamento não encontrado");
         erro.status = 404;
+        erro.errorCode = "APPOINTMENT_NOT_FOUND";
         return next(erro);
       }
 
@@ -318,6 +509,7 @@ const appointmentsController = {
       if (!deleteAgendamento) {
         const erro = new Error("Agendamento não encontrado");
         erro.status = 404;
+        erro.errorCode = "APPOINTMENT_NOT_FOUND";
         return next(erro);
       }
 
@@ -332,3 +524,4 @@ const appointmentsController = {
 };
 
 module.exports = appointmentsController;
+module.exports.getOccupiedHours = getOccupiedHours;

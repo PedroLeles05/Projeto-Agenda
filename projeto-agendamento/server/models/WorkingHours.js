@@ -12,11 +12,28 @@ const workingSchema = new Schema({
     saturday: { type: Boolean, default: false },
     sunday: { type: Boolean, default: false },
   },
-  startTime: { type: String, required: true },
-  endTime: { type: String, required: true },
-
-  breakTimeStart: { type: String },
-  breakTimeEnd: { type: String },
+  startTime: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 23,
+  },
+  endTime: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 23,
+  },
+  breakTimeStart: {
+    type: Number,
+    min: 0,
+    max: 23,
+  },
+  breakTimeEnd: {
+    type: Number,
+    min: 0,
+    max: 23,
+  },
 
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

@@ -81,18 +81,34 @@ describe("Testes do Módulo de API", () => {
 
       await apiRegister("Nome", "email@test.com", "11999", "senha");
 
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/api/user/public/register"),
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({
-            name: "Nome",
-            email: "email@test.com",
-            phone: "11999",
-            password: "senha",
-          }),
-        }),
-      );
+      const [url, requestConfig] = fetchMock.mock.calls[0];
+
+      expect(url).toContain("/api/user/public/register");
+      expect(requestConfig.method).toBe("POST");
+      expect(JSON.parse(requestConfig.body)).toEqual({
+        name: "Nome",
+        email: "email@test.com",
+        phone: "11999",
+        password: "senha",
+      });
+    });
+
+    it("apiRegister deve aceitar o formato usado pelo frontend com nome, e-mail e senha", async () => {
+      const fetchMock = mockFetchResponse({ id: 1 });
+      vi.stubGlobal("fetch", fetchMock);
+
+      await apiRegister("Nome", "email@test.com", "senha");
+
+      const [url, requestConfig] = fetchMock.mock.calls[0];
+
+      expect(url).toContain("/api/user/public/register");
+      expect(requestConfig.method).toBe("POST");
+      expect(JSON.parse(requestConfig.body)).toEqual({
+        name: "Nome",
+        email: "email@test.com",
+        phone: "",
+        password: "senha",
+      });
     });
   });
 
@@ -109,7 +125,7 @@ describe("Testes do Módulo de API", () => {
       );
     });
 
-    it("apiCreateService deve encapsular dados em { serviceData }", async () => {
+    it("apiCreateService deve enviar os dados do serviço diretamente no corpo da requisição", async () => {
       const fetchMock = mockFetchResponse({ id: 1 });
       vi.stubGlobal("fetch", fetchMock);
       localStorage.setItem("token", "valido");
@@ -120,7 +136,7 @@ describe("Testes do Módulo de API", () => {
       expect(fetchMock).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ serviceData: dados }), // Valida sua estrutura específica
+          body: JSON.stringify(dados),
           headers: expect.objectContaining({ Authorization: "Bearer valido" }),
         }),
       );
@@ -196,6 +212,25 @@ describe("Testes do Módulo de API", () => {
     } catch (e) {
       expect(e.status).toBe(401);
       expect(e.code).toBe("UNAUTHORIZED");
+      expect(e.message).toBe("Não autorizado");
+    }
+  });
+
+  it("Deve tratar respostas de erro mesmo quando o corpo não vem em JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: async () => "Não autorizado",
+      }),
+    );
+
+    try {
+      await apiLogin("teste@teste.com", "123456");
+      throw new Error("Esperava que apiLogin lançasse erro");
+    } catch (e) {
+      expect(e.status).toBe(401);
       expect(e.message).toBe("Não autorizado");
     }
   });

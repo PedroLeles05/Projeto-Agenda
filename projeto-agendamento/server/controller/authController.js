@@ -5,11 +5,19 @@ const working = require("../models/WorkingHours.js");
 const authController = {
   login: async (req, res, next) => {
     try {
-      const { email, password } = req.body;
+      const { email, password, remember } = req.body;
 
-      if (!email || !password) {
-        const erro = new Error("E-mail e senha são obrigatórios");
+      if (!email || typeof email !== "string") {
+        const erro = new Error("E-mail inválido");
         erro.status = 400;
+        erro.errorCode = "INVALID_EMAIL";
+        return next(erro);
+      }
+
+      if (!password || typeof password !== "string") {
+        const erro = new Error("Senha inválida");
+        erro.status = 400;
+        erro.errorCode = "INVALID_PASSWORD";
         return next(erro);
       }
 
@@ -17,6 +25,7 @@ const authController = {
       if (!usuario) {
         const erro = new Error("Nenhum usuário encontrado");
         erro.status = 404;
+        erro.errorCode = "USER_NOT_FOUND";
         return next(erro);
       }
 
@@ -24,17 +33,21 @@ const authController = {
       if (!senhaValida) {
         const erro = new Error("Senha inválida");
         erro.status = 401;
+        erro.errorCode = "INVALID_CREDENTIALS";
         return next(erro);
       }
 
+      const tempoExpiracao = remember ? "7d" : "1d";
+
       const token = jwt.sign({ _id: usuario._id }, process.env.JWT_SECRET, {
-        expiresIn: "7d",
+        expiresIn: tempoExpiracao,
       });
 
       res.status(200).json({
         message: "Logado",
         token: token,
-        user: { id: usuario._id, name: usuario.name, email: usuario.email },
+        tempo: tempoExpiracao,
+        user: { name: usuario.name, email: usuario.email },
       });
     } catch (erro) {
       next(erro);
@@ -43,25 +56,47 @@ const authController = {
   register: async (req, res, next) => {
     try {
       const { name, email, password } = req.body;
-      if (!name || !email || !password) {
-        const erro = new Error(
-          "Os campos: Nome, e-mail e senha são obrigatórios",
-        );
+
+      if (!name || typeof name !== "string" || name.trim().length < 2) {
+        const erro = new Error("Nome inválido");
         erro.status = 400;
+        erro.errorCode = "INVALID_NAME";
         return next(erro);
       }
-      if (password < 6) {
-        const erro = new Error("Senha tem que ter mais que 6 caractéres");
+
+      const emailNormalizado = email?.toLowerCase().trim();
+
+      if (
+        !emailNormalizado ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalizado)
+      ) {
+        const erro = new Error("E-mail inválido");
         erro.status = 400;
+        erro.errorCode = "INVALID_EMAIL";
+        return next(erro);
+      }
+
+      if (!password || typeof password !== "string" || password.length < 6) {
+        const erro = new Error("Senha deve ter pelo menos 6 caracteres");
+        erro.status = 400;
+        erro.errorCode = "INVALID_PASSWORD";
+        return next(erro);
+      }
+
+      const usuarioExistente = await user.findOne({ email: emailNormalizado });
+      if (usuarioExistente) {
+        const erro = new Error("E-mail já cadastrado");
+        erro.status = 409;
+        erro.errorCode = "EMAIL_ALREADY_REGISTERED";
         return next(erro);
       }
 
       const novoUsuario = await user.create(req.body);
 
-      const workingHours = await working.create({
+      await working.create({
         userId: novoUsuario._id,
-        startTime: "09:00",
-        endTime: "18:00",
+        startTime: 9,
+        endTime: 18,
       });
 
       res.status(201).json({
