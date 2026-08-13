@@ -1,4 +1,4 @@
-const api_url = "http://localhost:3000";
+const api_url = "https://agenda-api-wkgi.onrender.com";
 let authExpiredNotified = false;
 
 function notifyAuthExpired(message) {
