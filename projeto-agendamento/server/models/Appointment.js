@@ -52,6 +52,13 @@ const appointmentsSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  deletedAt: {
+    type: Date,
+    default: null,
+  },
 });
+
+// Remove definitivamente o agendamento 30 dias após a exclusão (soft delete)
+appointmentsSchema.index({ deletedAt: 1 }, { expireAfterSeconds: 2592000 });
 
 module.exports = mongoose.model("Appointments", appointmentsSchema);

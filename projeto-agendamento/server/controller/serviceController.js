@@ -4,7 +4,7 @@ const serviceController = {
   getPublicAll: async (req, res, next) => {
     try {
       const listaServico = await service
-        .find({ active: { $ne: false } })
+        .find({ active: { $ne: false }, deletedAt: null })
         .populate("userId", "name");
       res.status(200).json({
         message: "Serviços encontrados",
@@ -17,7 +17,7 @@ const serviceController = {
   getAll: async (req, res, next) => {
     try {
       const servicos = await service
-        .find({ userId: req.user })
+        .find({ userId: req.user, deletedAt: null })
         .select("title description duration price active userId");
 
       if (servicos.length === 0) {
@@ -39,7 +39,7 @@ const serviceController = {
   getById: async (req, res, next) => {
     try {
       const servico = await service
-        .findOne({ _id: req.params.id, userId: req.user })
+        .findOne({ _id: req.params.id, userId: req.user, deletedAt: null })
         .populate("userId", "name");
 
       if (!servico) {
@@ -112,7 +112,10 @@ const serviceController = {
         return next(erro);
       }
 
-      const totalServico = await service.countDocuments({ userId: req.user });
+      const totalServico = await service.countDocuments({
+        userId: req.user,
+        deletedAt: null,
+      });
       if (totalServico >= 5) {
         const erro = new Error("Limite de serviços atingidos");
         erro.status = 403;
@@ -212,11 +215,12 @@ const serviceController = {
       const servicoAntigo = await service.findOne({
         _id: req.params.id,
         userId: req.user,
+        deletedAt: null,
       });
 
       const servicoUpdate = await service
         .findOneAndUpdate(
-          { _id: req.params.id, userId: req.user },
+          { _id: req.params.id, userId: req.user, deletedAt: null },
           updatePayload,
           {
             returnDocument: "after",
@@ -242,10 +246,11 @@ const serviceController = {
   },
   delete: async (req, res, next) => {
     try {
-      const servicoDelete = await service.findOneAndDelete({
-        _id: req.params.id,
-        userId: req.user,
-      });
+      const servicoDelete = await service.findOneAndUpdate(
+        { _id: req.params.id, userId: req.user, deletedAt: null },
+        { active: false, deletedAt: new Date() },
+        { returnDocument: "after" },
+      );
       if (!servicoDelete) {
         const erro = new Error("Serviço não encontrado");
         erro.status = 404;
@@ -254,7 +259,7 @@ const serviceController = {
       }
 
       res.status(200).json({
-        message: "Serviço deletado com sucesso",
+        message: "Serviço excluído com sucesso",
         servicoDelete,
       });
     } catch (erro) {

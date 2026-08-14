@@ -32,6 +32,13 @@ const serviceSchema = new Schema({
     type: Boolean,
     default: true,
   },
+  deletedAt: {
+    type: Date,
+    default: null,
+  },
 });
+
+// Remove definitivamente o serviço 30 dias após a exclusão (soft delete)
+serviceSchema.index({ deletedAt: 1 }, { expireAfterSeconds: 2592000 });
 
 module.exports = mongoose.model("Services", serviceSchema);

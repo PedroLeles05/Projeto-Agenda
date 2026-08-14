@@ -444,7 +444,7 @@ const appointmentsController = {
   getAll: async (req, res, next) => {
     try {
       const appointmentsList = await appointments
-        .find({ userId: req.user })
+        .find({ userId: req.user, deletedAt: null })
         .select(
           "date time startAt endAt status clientName clientEmail clientPhone",
         )
@@ -502,10 +502,11 @@ const appointmentsController = {
   },
   delete: async (req, res, next) => {
     try {
-      const deleteAgendamento = await appointments.findOneAndDelete({
-        _id: req.params.id,
-        userId: req.user,
-      });
+      const deleteAgendamento = await appointments.findOneAndUpdate(
+        { _id: req.params.id, userId: req.user, deletedAt: null },
+        { status: "cancelled", deletedAt: new Date() },
+        { returnDocument: "after" },
+      );
       if (!deleteAgendamento) {
         const erro = new Error("Agendamento não encontrado");
         erro.status = 404;

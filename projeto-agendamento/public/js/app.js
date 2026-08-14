@@ -28,6 +28,7 @@ import {
   formatPrice,
   formatDateToInput,
   createServiceCard,
+  setupDescriptionToggle,
   getScheduleTimeSelect,
   getScheduleDateInput,
   getWorkingHoursForm,
@@ -200,6 +201,7 @@ function filterPublicServices() {
   filtered.forEach((service) => {
     const card = createServiceCard(service);
     grid.appendChild(card);
+    setupDescriptionToggle(card);
   });
 
   grid.querySelectorAll(".btn-schedule").forEach((button) => {
@@ -497,10 +499,10 @@ async function loadProviderServices() {
         const isActive = service.active !== false;
         const card = document.createElement("article");
         card.className =
-          "bg-white border border-stone-200 rounded-2xl p-5 flex flex-col gap-4";
+          "service-card-item min-w-0 max-w-full overflow-hidden bg-white border border-stone-200 rounded-2xl p-5 flex flex-col gap-4";
         card.innerHTML = `
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex-1 min-w-0">
+        <div class="min-w-0 flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0 max-w-full">
             <div class="flex items-center gap-2 mb-1">
               <span class="font-medium text-stone-900 text-sm truncate">${escapeHTML(
                 service.title,
@@ -514,9 +516,12 @@ async function loadProviderServices() {
             <p class="text-xs text-stone-400">${escapeHTML(
               service.duration,
             )} min · ${formatPrice(service.price)}</p>
-            <p class="text-xs text-stone-500 mt-2">${escapeHTML(
+            <p class="service-description content-wrap text-xs text-stone-500 mt-2">${escapeHTML(
               service.description,
             )}</p>
+            <button type="button" class="btn-toggle-description hidden text-xs font-medium text-teal-700 hover:text-teal-800 mt-1">
+              Ver mais
+            </button>
           </div>
           <div class="flex gap-2 flex-shrink-0">
             <button type="button" data-service-id="${service._id}" data-next-active="${isActive ? "false" : "true"}" class="btn-toggle-service-status h-8 px-2.5 flex items-center justify-center rounded-lg border ${
@@ -541,6 +546,7 @@ async function loadProviderServices() {
       `;
 
         list.appendChild(card);
+        setupDescriptionToggle(card);
       });
 
       list.querySelectorAll(".btn-delete-service").forEach((button) => {

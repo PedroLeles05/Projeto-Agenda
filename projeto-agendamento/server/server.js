@@ -1,3 +1,6 @@
+// Fixa o fuso horário para que datas/horas de agendamento sejam consistentes entre ambientes (local vs. produção)
+process.env.TZ = process.env.TZ || "America/Sao_Paulo";
+
 require("dotenv").config({ path: "../.env" });
 const express = require("express");
 const cors = require("cors");

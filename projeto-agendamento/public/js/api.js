@@ -1,4 +1,10 @@
-const api_url = "https://agenda-api-wkgi.onrender.com";
+const isLocalHost =
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+const api_url = isLocalHost
+  ? "http://localhost:3000"
+  : "https://agenda-api-wkgi.onrender.com";
 let authExpiredNotified = false;
 
 function notifyAuthExpired(message) {

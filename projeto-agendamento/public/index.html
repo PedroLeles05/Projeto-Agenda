@@ -385,6 +385,44 @@
         transition: background 0.1s;
       }
 
+      #services-grid > *,
+      #provider-services-list > * {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .content-wrap {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .service-card-item {
+        align-self: start;
+      }
+
+      #services-grid .service-card-item {
+        height: 222px;
+      }
+
+      #services-grid .service-card-item.is-expanded {
+        height: auto;
+      }
+
+      .service-description {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+      }
+
+      .service-card-item.is-expanded .service-description {
+        display: block;
+        overflow: visible;
+        -webkit-line-clamp: unset;
+      }
+
       /* ── Mobile nav drawer ── */
       #mobile-menu {
         display: none;

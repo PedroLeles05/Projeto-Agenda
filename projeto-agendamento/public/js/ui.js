@@ -245,6 +245,17 @@ export function initUIEventListeners() {
       );
   }
 
+  document.addEventListener("click", (event) => {
+    const toggleButton = event.target.closest(".btn-toggle-description");
+    if (!toggleButton) return;
+
+    const card = toggleButton.closest(".service-card-item");
+    if (!card) return;
+
+    const expanded = card.classList.toggle("is-expanded");
+    toggleButton.textContent = expanded ? "Ver menos" : "Ver mais";
+  });
+
   // Filter pills
   document.querySelectorAll(".tab-pill").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -325,12 +336,12 @@ export function formatDateToInput(dateObj) {
 export function createServiceCard(service) {
   const card = document.createElement("article");
   card.className =
-    "bg-white border border-stone-200 rounded-2xl p-5 flex flex-col justify-between gap-4";
+    "service-card-item min-w-0 max-w-full overflow-hidden bg-white border border-stone-200 rounded-2xl p-5 flex flex-col justify-between gap-4";
   const providerName = service.userId?.name || "Prestador";
   const description = service.description || "Sem descrição disponível.";
   card.innerHTML = `
-    <div>
-      <div class="flex items-center justify-between gap-3 mb-4">
+    <div class="min-w-0 max-w-full flex flex-col h-full">
+      <div class="min-w-0 flex items-center justify-between gap-3 mb-4">
         <div class="min-w-0">
           <p class="font-medium text-stone-900 text-sm truncate">${escapeHTML(
             service.title,
@@ -341,8 +352,11 @@ export function createServiceCard(service) {
           service.price,
         )}</span>
       </div>
-      <p class="text-sm text-stone-500 mb-4">${escapeHTML(description)}</p>
-      <div class="flex items-center justify-between gap-3">
+      <p class="service-description content-wrap text-sm text-stone-500 mb-1">${escapeHTML(description)}</p>
+      <button type="button" class="btn-toggle-description hidden self-start text-xs font-medium text-teal-700 hover:text-teal-800 mb-3">
+        Ver mais
+      </button>
+      <div class="mt-auto flex items-center justify-between gap-3">
         <span class="text-xs text-stone-400">${escapeHTML(
           String(service.duration),
         )} min</span>
@@ -357,6 +371,19 @@ export function createServiceCard(service) {
     </div>
   `;
   return card;
+}
+
+export function setupDescriptionToggle(card) {
+  const descriptionElement = card.querySelector(".service-description");
+  const toggleButton = card.querySelector(".btn-toggle-description");
+
+  if (
+    descriptionElement &&
+    toggleButton &&
+    descriptionElement.scrollHeight > descriptionElement.clientHeight
+  ) {
+    toggleButton.classList.remove("hidden");
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
