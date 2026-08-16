@@ -60,6 +60,16 @@ export function validarEmail(email) {
   return { valid: true };
 }
 
+export function validarTelefone(telefone) {
+  const digits = String(telefone || "").replace(/\D/g, "");
+
+  if (digits.length !== 10 && digits.length !== 11) {
+    return { valid: false, message: "Digite um telefone válido com DDD." };
+  }
+
+  return { valid: true, value: digits };
+}
+
 export function validarSenha(senha, confirmacaoSenha) {
   if (!senha) {
     document.getElementById("register-password").value = "";

@@ -2,6 +2,7 @@ const appointments = require("../models/Appointment.js");
 const service = require("../models/Service.js");
 const working = require("../models/WorkingHours.js");
 const { gerarSlots } = require("../utils/slots.js");
+const { sendAppointmentEmailSafely } = require("../services/emailService.js");
 
 function getOccupiedHours(appointmentsList, serviceDuration) {
   const occupiedHours = new Set();
@@ -431,6 +432,18 @@ const appointmentsController = {
         userId: servico.userId,
       });
 
+      const appointmentForEmail = await appointments
+        .findById(novoAgendamento._id)
+        .populate("serviceId", "title duration price")
+        .populate("userId", "name email phone");
+
+      await sendAppointmentEmailSafely({
+        appointment: appointmentForEmail,
+        service: appointmentForEmail.serviceId,
+        provider: appointmentForEmail.userId,
+        status: "scheduled",
+      });
+
       res.status(201).json({
         message: "Agendamento criado",
         novoAgendamento,
@@ -492,6 +505,20 @@ const appointmentsController = {
         return next(erro);
       }
 
+      if (["cancelled", "completed"].includes(updatePayload.status)) {
+        const appointmentForEmail = await appointments
+          .findById(updateAgendamento._id)
+          .populate("serviceId", "title duration price")
+          .populate("userId", "name email phone");
+
+        await sendAppointmentEmailSafely({
+          appointment: appointmentForEmail,
+          service: appointmentForEmail.serviceId,
+          provider: appointmentForEmail.userId,
+          status: updatePayload.status,
+        });
+      }
+
       res.status(200).json({
         message: "Agendamento editado com sucesso",
         updateAgendamento,
@@ -513,6 +540,18 @@ const appointmentsController = {
         erro.errorCode = "APPOINTMENT_NOT_FOUND";
         return next(erro);
       }
+
+      const appointmentForEmail = await appointments
+        .findById(deleteAgendamento._id)
+        .populate("serviceId", "title duration price")
+        .populate("userId", "name email phone");
+
+      await sendAppointmentEmailSafely({
+        appointment: appointmentForEmail,
+        service: appointmentForEmail.serviceId,
+        provider: appointmentForEmail.userId,
+        status: "cancelled",
+      });
 
       res.status(200).json({
         message: "Agendamento excluído com sucesso",

@@ -16,6 +16,7 @@ const erroHandler = require("./middlewares/erroHandler.js");
 const { conectDB } = require("./config/db.js");
 
 const app = express();
+app.set("trust proxy", 1);
 const porta = Number(process.env.PORT || 3000);
 const isProduction = process.env.NODE_ENV === "production";
 

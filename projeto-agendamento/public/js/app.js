@@ -51,8 +51,20 @@ import {
   validateRequiredFields,
   validarNome,
   validarEmail,
+  validarTelefone,
   validarSenha,
 } from "./formValidation.js";
+
+function formatPhone(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return phone || "Não informado";
+}
 
 console.log("✓ app.js carregado");
 
@@ -693,6 +705,9 @@ async function loadProviderAppointments() {
           <p class="text-xs text-stone-400">${escapeHTML(
             appointment.clientEmail,
           )}</p>
+          <p class="content-wrap text-xs text-stone-400 mt-1">Telefone: ${escapeHTML(
+            formatPhone(appointment.clientPhone),
+          )}</p>
         </div>
         <span class="text-xs ${badgeClass} px-2.5 py-1 rounded-full font-medium flex-shrink-0">${escapeHTML(statusLabel)}</span>
       </div>
@@ -933,28 +948,44 @@ async function handleRegister(event) {
 
   const nome = document.getElementById("register-name")?.value.trim();
   const email = document.getElementById("register-email")?.value.trim();
+  const telefone = document.getElementById("register-phone")?.value.trim();
   const senha = document.getElementById("register-password")?.value;
   const senhaConfirm = document.getElementById(
     "register-confirm-password",
   )?.value;
+  const termosAceitos = document.getElementById("terms-check")?.checked;
   const submitBtn = document.getElementById("register-submit");
 
-  if (!validateRequiredFields([nome, email, senha, senhaConfirm])) {
+  if (!validateRequiredFields([nome, email, telefone, senha, senhaConfirm])) {
     showToast("Preencha todos os campos do cadastro.", "error");
     return;
   }
 
-  if (!validarNome(nome)) {
+  if (!termosAceitos) {
+    showToast("Aceite os Termos de Uso e a Política de Privacidade.", "error");
+    return;
+  }
+
+  const resultadoNome = validarNome(nome);
+  if (!resultadoNome.valid) {
     showToast("Por favor, insira seu nome completo.", "error");
     return;
   }
 
-  if (!validarEmail(email)) {
+  const resultadoEmail = validarEmail(email);
+  if (!resultadoEmail.valid) {
     showToast("Digite um e-mail válido.", "error");
     return;
   }
 
-  if (!validarSenha(senha)) {
+  const resultadoTelefone = validarTelefone(telefone);
+  if (!resultadoTelefone.valid) {
+    showToast(resultadoTelefone.message, "error");
+    return;
+  }
+
+  const resultadoSenha = validarSenha(senha);
+  if (!resultadoSenha.valid) {
     showToast("A senha deve ter pelo menos 6 caracteres.", "error");
     return;
   }
@@ -970,7 +1001,12 @@ async function handleRegister(event) {
       submitBtn.innerHTML = "Cadastrando...";
     }
 
-    await apiRegister({ name: nome, email, password: senha });
+    await apiRegister({
+      name: nome,
+      email,
+      phone: resultadoTelefone.value,
+      password: senha,
+    });
     showToast("Cadastro realizado com sucesso! Faça login.", "success");
     closeRegisterModal();
     document.getElementById("login-modal-overlay")?.classList.add("open");

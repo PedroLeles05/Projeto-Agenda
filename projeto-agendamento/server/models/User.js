@@ -18,6 +18,12 @@ const userSchema = new Schema({
     lowercase: true,
     match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "E-mail inválido"],
   },
+  phone: {
+    type: String,
+    required: true,
+    trim: true,
+    match: [/^\d{10,11}$/, "Telefone inválido"],
+  },
   password: {
     type: String,
     required: true,

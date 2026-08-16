@@ -47,7 +47,11 @@ const authController = {
         message: "Logado",
         token: token,
         tempo: tempoExpiracao,
-        user: { name: usuario.name, email: usuario.email },
+        user: {
+          name: usuario.name,
+          email: usuario.email,
+          phone: usuario.phone,
+        },
       });
     } catch (erro) {
       next(erro);
@@ -55,12 +59,19 @@ const authController = {
   },
   register: async (req, res, next) => {
     try {
-      const { name, email, password } = req.body;
+      const { name, email, phone, password } = req.body;
 
       if (!name || typeof name !== "string" || name.trim().length < 2) {
         const erro = new Error("Nome inválido");
         erro.status = 400;
         erro.errorCode = "INVALID_NAME";
+        return next(erro);
+      }
+
+      if (name.trim().split(/\s+/).length < 2) {
+        const erro = new Error("Informe nome e sobrenome");
+        erro.status = 400;
+        erro.errorCode = "INVALID_FULL_NAME";
         return next(erro);
       }
 
@@ -73,6 +84,14 @@ const authController = {
         const erro = new Error("E-mail inválido");
         erro.status = 400;
         erro.errorCode = "INVALID_EMAIL";
+        return next(erro);
+      }
+
+      const telefoneNormalizado = String(phone || "").replace(/\D/g, "");
+      if (!/^\d{10,11}$/.test(telefoneNormalizado)) {
+        const erro = new Error("Telefone inválido");
+        erro.status = 400;
+        erro.errorCode = "INVALID_PHONE";
         return next(erro);
       }
 
@@ -91,7 +110,12 @@ const authController = {
         return next(erro);
       }
 
-      const novoUsuario = await user.create(req.body);
+      const novoUsuario = await user.create({
+        name: name.trim(),
+        email: emailNormalizado,
+        phone: telefoneNormalizado,
+        password,
+      });
 
       await working.create({
         userId: novoUsuario._id,
@@ -102,8 +126,9 @@ const authController = {
       res.status(201).json({
         message: "Usuário criado com sucesso",
         usuario: novoUsuario._id,
-        name,
-        email,
+        name: novoUsuario.name,
+        email: novoUsuario.email,
+        phone: novoUsuario.phone,
         expediente: novoUsuario.workingHours,
       });
     } catch (erro) {
