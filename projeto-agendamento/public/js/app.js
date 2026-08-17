@@ -968,13 +968,13 @@ async function handleRegister(event) {
 
   const resultadoNome = validarNome(nome);
   if (!resultadoNome.valid) {
-    showToast("Por favor, insira seu nome completo.", "error");
+    showToast(resultadoNome.message, "error");
     return;
   }
 
   const resultadoEmail = validarEmail(email);
   if (!resultadoEmail.valid) {
-    showToast("Digite um e-mail válido.", "error");
+    showToast(resultadoEmail.message, "error");
     return;
   }
 
@@ -984,14 +984,9 @@ async function handleRegister(event) {
     return;
   }
 
-  const resultadoSenha = validarSenha(senha);
+  const resultadoSenha = validarSenha(senha, senhaConfirm);
   if (!resultadoSenha.valid) {
-    showToast("A senha deve ter pelo menos 6 caracteres.", "error");
-    return;
-  }
-
-  if (senha !== senhaConfirm) {
-    showToast("As senhas não coincidem.", "error");
+    showToast(resultadoSenha.message, "error");
     return;
   }
 
